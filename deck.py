@@ -47,11 +47,11 @@ class PlayerDeck:
                     self.special += 1
                 heart_count[self.orderofRanks.index(card.rank)] += 1
         self.royalflush = []
+        #Implement special heart of 2
         for suit in suit_count:
             for i in range(8):
                 k = min(suit[i:i+5])
                 self.royalflush += [self.orderofRanks[i]] * k
-        #Special heart of A
 
     def _single(self):
         return [self.orderofRanks[i] for i in range(15) if self.count[i] >= 1]
@@ -80,8 +80,12 @@ class PlayerDeck:
     def _two_of_three(self):
         return [self.orderofRanks[i] for i in range(11) if min(self.count[i:i+2]) >= 3]
     
+    #to be added: 3+2, kingbomb
+
+    
     def _legal(self):
         return [self._single(), self._pair(), self._three(), self._three_of_pair(), self._flush(), self._two_of_three(), self._four(), self._five(), self.royalflush, self._six()] #bombs: 11,12,13,14
+    
     
     def can_play(self, other_hand):
         hand = self._legal()
@@ -132,10 +136,10 @@ print(player.cards)
 print(player.royalflush)
 other_hand = Hand(3, '4')
 print(player.can_play(other_hand))
-"""
 player = PlayerDeck([Card(rank='5', suit='hearts'), Card(rank='Q', suit='diamonds'), Card(rank='4', suit='spades'), Card(rank='7', suit='hearts'), Card(rank='9', suit='hearts'), Card(rank='J', suit='diamonds'), Card(rank='9', suit='spades'), Card(rank='Joker', suit='Red'), Card(rank='7', suit='clubs'), Card(rank='4', suit='diamonds'), Card(rank='Q', suit='spades'), Card(rank='3', suit='spades'), Card(rank='Q', suit='diamonds'), Card(rank='J', suit='clubs'), Card(rank='3', suit='diamonds'), Card(rank='J', suit='hearts'), Card(rank='6', suit='hearts'), Card(rank='4', suit='spades'), Card(rank='K', suit='spades'), Card(rank='3', suit='clubs'), Card(rank='5', suit='clubs'), Card(rank='5', suit='hearts'), Card(rank='8', suit='clubs'), Card(rank='4', suit='clubs'), Card(rank='6', suit='clubs'), Card(rank='8', suit='diamonds'), Card(rank='6', suit='spades')])
 print(player.count, player.royalflush)
 other_hand = Hand(5, '4')
 print(player.can_play(other_hand))
 player.play(Hand(2, '8'))
 print(player.count, player.royalflush)
+"""
