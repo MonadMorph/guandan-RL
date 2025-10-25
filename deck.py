@@ -13,6 +13,8 @@ class FrenchDeck:
                                         for rank in self.ranks for _ in range(2)]
         self.cards += [Card('Black Joker', 'Black'), Card('Red Joker', 'Red'), Card('Black Joker', 'Black'), Card('Red Joker', 'Red')]
         self.exchange = last_game
+        self.history = []
+        self.left = [27, 27, 27, 27, 108]  #player0, player1, player2, player3, total
     
     def distribute(self):
         random.shuffle(self.cards)
@@ -23,6 +25,17 @@ class FrenchDeck:
             hands.append(sublist)
         #implement exchange hand            
         self.players = [PlayerDeck(hands[i], self.orderofRanks) for i in range(4)]
+
+    def play(self, player_index, hand):
+        self.players[player_index].play(hand)
+        self.history.append((player_index, hand))
+        self.left[4] -= hand.size
+        self.left[player_index] -= hand.size
+
+    def state(self, player_index, prev_hand):
+        #private hand, private legal actions, public history (last 8), public cards left (mine, next, ..., total), public last hand, public last player
+        return (self.players[player_index].count, self.players[player_index].can_play(prev_hand[0]), self.history[-8:], self.left[player_index:4] + self.left[:player_index] + [self.left[4]], prev_hand[0], prev_hand[1])
+
 
 class PlayerDeck:
     def __init__(self, cards, orderofRanks):
@@ -139,11 +152,27 @@ class PlayerDeck:
         #check royalflush
         self.royalflush = [card for card in self.royalflush if min(self.count[self.orderofRanks.index(card):self.orderofRanks.index(card)+5]) >= 1]
 
+'''Type as follows:
+1: single 
+2: pair
+3: three
+4: three of pair
+5: flush
+6: two of three
+11: four
+12: five
+13: royal flush
+14: six'''
 class Hand:
     orderofRanks = ['3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A', '2', 'Black Joker', 'Red Joker']
     def __init__(self, type, rank):
         self.type = type
         self.rank = rank
+        if self.type <= 3: self.size = self.type
+        elif self.type == 4 or self.type == 6: self.size = 6
+        elif self.type == 5 or self.type == 13: self.size = 5
+        elif self.type == 11 or self.type == 12: self.size = self.type - 7
+        elif self.type == 14: self.size = 6
 
     def __repr__(self):
         if self.type <= 3:
