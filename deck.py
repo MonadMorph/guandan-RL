@@ -33,8 +33,8 @@ class FrenchDeck:
         self.left[player_index] -= hand.size
 
     def state(self, player_index, prev_hand):
-        #private hand, private legal actions, public history (last 8), public cards left (mine, next, ..., total), public last hand, public last player
-        return (self.players[player_index].count, self.players[player_index].can_play(prev_hand[0]), self.history[-8:], self.left[player_index:4] + self.left[:player_index] + [self.left[4]], prev_hand[0], prev_hand[1])
+        #private hand, private legal actions, public history (last 8), public cards left (mine, next, ..., total), public last hand, public last player, player index
+        return (self.players[player_index].count, self.players[player_index].can_play(prev_hand[0]), [(None, None) for _ in range(max(0,8-len(self.history)))] +self.history[-8:], self.left[player_index:4] + self.left[:player_index] + [self.left[4]], prev_hand[0], prev_hand[1], player_index)
 
 
 class PlayerDeck:
@@ -193,7 +193,6 @@ class Hand:
             return 'Royal Flush ' + ' '.join([self.orderofRanks[n+i] for i in range(5)])
         elif self.type == 14:
             return (self.rank + ' ')*6
-
 
 
 """   
