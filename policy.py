@@ -1,5 +1,6 @@
 import torch.nn as nn
 import torch
+import torch.nn.functional as F
 
 def trained_policy(state):
     pass    
@@ -76,7 +77,7 @@ class HandRankEncoder(nn.Module):
         return vecs
     
 #This is just a MLP now. Can be replaced by Transformer later.
-#num_actions: 15+15+13+10+8+11+13+13+8+13 = 119 For now
+#num_actions: 15+15+13+10+8+11+13+13+8+13+1 = 120 For now, the last action is pass, which is always legal.
 class PolicyValueNet(nn.Module):
     def __init__(self, input_dim, hidden_dim, num_actions):
         super().__init__()
@@ -102,9 +103,27 @@ def masking(state):
     legal_actions = state[1]
     ans = {1: [0]*15, 2: [0]*15, 3: [0]*13, 4: [0]*10, 5: [0]*8, 6: [0]*11, 11: [0]*13, 12: [0]*13, 13: [0]*8, 14: [0]*13}
     for action in legal_actions:
-    
+        ans[action.type][action.index] = 1
+    flat_mask = []
+    for key in sorted(ans.keys()):
+        flat_mask.extend(ans[key])
+    flat_mask.append(1)  # for pass action
+    return torch.tensor(flat_mask, dtype=torch.bool).unsqueeze(0)  # shape [1, num_actions]
+
 
 encoder = HandRankEncoder(d_model=128)
-policy_value_net = PolicyValueNet(input_dim=128, hidden_dim=256, num_actions=119)
-state_vec = encoder.foward(state)    
-logits, value = policy_value_net(state_vec)
+policy_value_net = PolicyValueNet(input_dim=128, hidden_dim=256, num_actions=120)
+
+def select_action(state):
+    state_vec = encoder(state)                    # [1, 128]
+    action_mask = masking(state)                  # [1, 120], bool tensor
+
+    logits, value = policy_value_net(state_vec, action_mask)
+
+    masked_logits = logits.masked_fill(~action_mask, -1e9)  # [1, 120]
+    probs = F.softmax(masked_logits, dim=-1)
+
+    action = torch.multinomial(probs, num_samples=1)
+    logprob = torch.log(probs.gather(1, action))
+
+    return action.item(), logprob, value
