@@ -6,7 +6,7 @@ test.distribute()
 for player in test.players:
     print(player)
 
-def random_policy(state):
+def random_policy(state): #Would always play if possible
     poss = state[1]
     this_hand = random.choice(poss) if poss else None
     return this_hand

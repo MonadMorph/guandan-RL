@@ -76,6 +76,7 @@ class HandRankEncoder(nn.Module):
         return vecs
     
 #This is just a MLP now. Can be replaced by Transformer later.
+#num_actions: 15+15+13+10+8+11+13+13+8+13 = 119 For now
 class PolicyValueNet(nn.Module):
     def __init__(self, input_dim, hidden_dim, num_actions):
         super().__init__()
@@ -85,7 +86,7 @@ class PolicyValueNet(nn.Module):
             nn.Linear(hidden_dim, hidden_dim),
             nn.ReLU()
         )
-        self.policy_head = nn.Linear(hidden_dim, num_actions)
+        self.policy_head = nn.Linear(hidden_dim, num_actions) #num_actions to be defined
         self.value_head = nn.Linear(hidden_dim, 1)
 
     def forward(self, x, action_mask=None):
@@ -94,4 +95,16 @@ class PolicyValueNet(nn.Module):
         if action_mask is not None:
             logits = logits.masked_fill(~action_mask, -1e9)
         value = self.value_head(h)
-        return logits, value    
+        return logits, value
+
+#To DO: implement masking function
+def masking(state):
+    legal_actions = state[1]
+    ans = {1: [0]*15, 2: [0]*15, 3: [0]*13, 4: [0]*10, 5: [0]*8, 6: [0]*11, 11: [0]*13, 12: [0]*13, 13: [0]*8, 14: [0]*13}
+    for action in legal_actions:
+    
+
+encoder = HandRankEncoder(d_model=128)
+policy_value_net = PolicyValueNet(input_dim=128, hidden_dim=256, num_actions=119)
+state_vec = encoder.foward(state)    
+logits, value = policy_value_net(state_vec)

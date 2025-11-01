@@ -67,7 +67,7 @@ class PlayerDeck:
         for suit in suit_count:
             for i in range(8):
                 k = min(suit[i:i+5])
-                self.royalflush += [self.orderofRanks[i]] * k
+                self.royalflush += [i] * k
 
     def __repr__(self):
         ans = ''
@@ -77,31 +77,31 @@ class PlayerDeck:
         return ans
     
     def _single(self):
-        return [self.orderofRanks[i] for i in range(15) if self.count[i] >= 1]
+        return [i for i in range(15) if self.count[i] >= 1]
 
     def _pair(self):
-        return [self.orderofRanks[i] for i in range(15) if self.count[i] >= 2]
+        return [i for i in range(15) if self.count[i] >= 2]
     
     def _three(self):
-        return [self.orderofRanks[i] for i in range(13) if self.count[i] >= 3]
+        return [i for i in range(13) if self.count[i] >= 3]
     
     def _four(self):    
-        return [self.orderofRanks[i] for i in range(13) if self.count[i] >= 4]
+        return [i for i in range(13) if self.count[i] >= 4]
     
     def _five(self):
-        return [self.orderofRanks[i] for i in range(13) if self.count[i] >= 5]
+        return [i for i in range(13) if self.count[i] >= 5]
     
     def _six(self):
-        return [self.orderofRanks[i] for i in range(13) if self.count[i] >= 6]
+        return [i for i in range(13) if self.count[i] >= 6]
     
     def _flush(self):
-        return [self.orderofRanks[i] for i in range(8) if min(self.count[i:i+5]) >= 1 and self.orderofRanks[i] not in self.royalflush]
+        return [i for i in range(8) if min(self.count[i:i+5]) >= 1 and self.orderofRanks[i] not in self.royalflush]
     
     def _three_of_pair(self):
-        return [self.orderofRanks[i] for i in range(10) if min(self.count[i:i+3]) >= 2]
+        return [i for i in range(10) if min(self.count[i:i+3]) >= 2]
     
     def _two_of_three(self):
-        return [self.orderofRanks[i] for i in range(11) if min(self.count[i:i+2]) >= 3]
+        return [i for i in range(11) if min(self.count[i:i+2]) >= 3]
     
     #to be added: 3+2, kingbomb
 
@@ -117,13 +117,13 @@ class PlayerDeck:
         elif other_hand.type <= 6:
             for i in range(6):
                 if other_hand.type == i+1:
-                    hand[i] = [card for card in hand[i] if self.orderofRanks.index(card) > self.orderofRanks.index(other_hand.rank)]
+                    hand[i] = [card for card in hand[i] if card > other_hand.rank]
                 else: hand[i] = []
         else: 
             for i in range(10):
                 if other_hand.type > i+5: hand[i] = []
                 elif other_hand.type == i+5:
-                    hand[i] = [card for card in hand[i] if self.orderofRanks.index(card) > self.orderofRanks.index(other_hand.rank)]
+                    hand[i] = [card for card in hand[i] if card > other_hand.rank]
         ans = []
         for i in range(len(hand)):
             if i <= 5:
@@ -134,23 +134,23 @@ class PlayerDeck:
     def play(self, hand):
         #Should make sure the hand is legal, won't check here
         if hand.type >0 and hand.type <= 3:
-            self.count[self.orderofRanks.index(hand.rank)] -= hand.type
+            self.count[hand.rank] -= hand.type
         if hand.type == 4:
             for i in range(3):
-                self.count[self.orderofRanks.index(hand.rank) + i] -= 2
+                self.count[hand.rank + i] -= 2
         if hand.type == 5 or hand.type == 13:
             for i in range(5):
-                self.count[self.orderofRanks.index(hand.rank) + i] -= 1
+                self.count[hand.rank + i] -= 1
         if hand.type == 6:
             for i in range(2):
-                self.count[self.orderofRanks.index(hand.rank) + i] -= 3
+                self.count[hand.rank + i] -= 3
         if hand.type == 11 or hand.type == 12:
-            self.count[self.orderofRanks.index(hand.rank)] -= (hand.type-7)
+            self.count[hand.rank] -= (hand.type-7)
         if hand.type == 14:
-            self.count[self.orderofRanks.index(hand.rank)] -= 6
+            self.count[hand.rank] -= 6
 
         #check royalflush
-        self.royalflush = [card for card in self.royalflush if min(self.count[self.orderofRanks.index(card):self.orderofRanks.index(card)+5]) >= 1]
+        self.royalflush = [card for card in self.royalflush if min(self.count[card:card+5]) >= 1]
 
 '''Type as follows:
 1: single 
@@ -167,7 +167,7 @@ class Hand:
     orderofRanks = ['3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A', '2', 'Black Joker', 'Red Joker']
     def __init__(self, type, rank):
         self.type = type
-        self.rank = rank
+        self.rank = rank #Rank now is just the index in orderofRanks
         if self.type <= 3: self.size = self.type
         elif self.type == 4 or self.type == 6: self.size = 6
         elif self.type == 5 or self.type == 13: self.size = 5
@@ -176,23 +176,19 @@ class Hand:
 
     def __repr__(self):
         if self.type <= 3:
-            return (self.rank + ' ')*self.type
+            return (self.orderofRanks[self.rank] + ' ')*self.type
         elif self.type == 4:
-            n = self.orderofRanks.index(self.rank)
-            return ' '.join([self.orderofRanks[n+i] for i in range(3) for _ in range(2)])
+            return ' '.join([self.orderofRanks[self.rank+i] for i in range(3) for _ in range(2)])
         elif self.type == 5:
-            n = self.orderofRanks.index(self.rank)
-            return ' '.join([self.orderofRanks[n+i] for i in range(5)])
+            return ' '.join([self.orderofRanks[self.rank+i] for i in range(5)])
         elif self.type == 6:
-            n = self.orderofRanks.index(self.rank)
-            return ' '.join([self.orderofRanks[n+i] for i in range(2) for _ in range(3)])
+            return ' '.join([self.orderofRanks[self.rank+i] for i in range(2) for _ in range(3)])
         elif self.type == 11 or self.type == 12:
-            return (self.rank + ' ')*(self.type-7)
+            return (self.orderofRanks[self.rank] + ' ')*(self.type-7)
         elif self.type == 13:
-            n = self.orderofRanks.index(self.rank)
-            return 'Royal Flush ' + ' '.join([self.orderofRanks[n+i] for i in range(5)])
+            return 'Royal Flush ' + ' '.join([self.orderofRanks[self.rank+i] for i in range(5)])
         elif self.type == 14:
-            return (self.rank + ' ')*6
+            return (self.orderofRanks[self.rank] + ' ')*6
 
 
 """   
