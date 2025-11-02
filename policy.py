@@ -1,6 +1,7 @@
 import torch.nn as nn
 import torch
 import torch.nn.functional as F
+from deck import Hand
 
 def trained_policy(state):
     pass    
@@ -98,7 +99,6 @@ class PolicyValueNet(nn.Module):
         value = self.value_head(h)
         return logits, value
 
-#To DO: implement masking function
 def masking(state):
     legal_actions = state[1]
     ans = {1: [0]*15, 2: [0]*15, 3: [0]*13, 4: [0]*10, 5: [0]*8, 6: [0]*11, 11: [0]*13, 12: [0]*13, 13: [0]*8, 14: [0]*13}
@@ -126,4 +126,29 @@ def select_action(state):
     action = torch.multinomial(probs, num_samples=1)
     logprob = torch.log(probs.gather(1, action))
 
-    return action.item(), logprob, value
+    #Transform action index back to Hand
+    action_index = action.item()
+    if action_index == 119:  # pass action
+        return None, logprob, value
+    elif action_index < 15:
+        hand = Hand(1, action_index)
+    elif action_index < 30:
+        hand = Hand(2, action_index - 15)
+    elif action_index < 43:
+        hand = Hand(3, action_index - 30)
+    elif action_index < 53:
+        hand = Hand(4, action_index - 43)
+    elif action_index < 61:
+        hand = Hand(5, action_index - 53)
+    elif action_index < 72:
+        hand = Hand(6, action_index - 61)
+    elif action_index < 85:
+        hand = Hand(11, action_index - 72)
+    elif action_index < 98:
+        hand = Hand(12, action_index - 85)
+    elif action_index < 106:
+        hand = Hand(13, action_index - 98)
+    elif action_index < 119:
+        hand = Hand(14, action_index - 106)
+
+    return hand, logprob, value
