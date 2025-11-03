@@ -1,5 +1,6 @@
 from deck import FrenchDeck
 import random
+from policy import select_action
 
 test = FrenchDeck()
 test.distribute()
@@ -27,7 +28,11 @@ while True:
 
     # This part is a temporary random player for testing
     # Should be replaced by RL agent decision, from state
-    this_hand = random_policy(state)
+    #testing
+    if turn == 2:
+        this_hand, logprob, value = select_action(state)
+    else:
+        this_hand = random_policy(state)
 
     if this_hand is not None:
         test.play(turn, this_hand)

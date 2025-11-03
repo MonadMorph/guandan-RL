@@ -34,15 +34,14 @@ class HandRankEncoder(nn.Module):
             players_en = [0]*4
             if state[2][i][0] is not None:
                 players_en[state[2][i][0]] = 1
-            type_en = [0]*10
+            type_en = [0]*11
             if state[2][i][1] is not None:
                 type = state[2][i][1].type
                 if type < 10:
                     type_en[type-1] = 1
-                    type_en.append(0)
                 else: 
                     type_en[type-5] = 1
-                    type_en.append(1)
+                    type_en[-1] = 1  # bomb indicator
                 rank_en = 1/14 * state[2][i][1].rank
             else: rank_en = 0
             vecs.extend(players_en)
@@ -57,18 +56,18 @@ class HandRankEncoder(nn.Module):
         players_en = [0]*4
         if state[4][0] is not None:
             players_en[state[4][0]] = 1
-        type_en = [0]*10
+        type_en = [0]*11
         if state[4][1] is not None:
             type = state[4][1].type
-            if type < 10:
+            if type < 10:                           
                 type_en[type-1] = 1
-                type_en.append(0)
             else: 
                 type_en[type-5] = 1
-                type_en.append(1)
+                type_en[-1] = 1  # bomb indicator           
             rank_en = 1/14 * state[4][1].rank
         vecs.extend(players_en)
         vecs.extend(type_en)
+        vecs.append(rank_en)
 
         #player index
         players_en = [0]*4
@@ -103,7 +102,7 @@ def masking(state):
     legal_actions = state[1]
     ans = {1: [0]*15, 2: [0]*15, 3: [0]*13, 4: [0]*10, 5: [0]*8, 6: [0]*11, 11: [0]*13, 12: [0]*13, 13: [0]*8, 14: [0]*13}
     for action in legal_actions:
-        ans[action.type][action.index] = 1
+        ans[action.type][action.rank] = 1
     flat_mask = []
     for key in sorted(ans.keys()):
         flat_mask.extend(ans[key])
@@ -152,3 +151,5 @@ def select_action(state):
         hand = Hand(14, action_index - 106)
 
     return hand, logprob, value
+
+#testing

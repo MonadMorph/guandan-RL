@@ -34,7 +34,7 @@ class FrenchDeck:
 
     def state(self, player_index, prev_hand):
         #private hand, private legal actions, public history (last 8), public cards left (mine, next, ..., total), public last hand, public last player, player index
-        return (self.players[player_index].count, self.players[player_index].can_play(prev_hand[0]), [(None, None) for _ in range(max(0,8-len(self.history)))] +self.history[-8:], self.left[player_index:4] + self.left[:player_index] + [self.left[4]], prev_hand[0], prev_hand[1], player_index)
+        return (self.players[player_index].count, self.players[player_index].can_play(prev_hand[0]), [(None, None) for _ in range(max(0,8-len(self.history)))] +self.history[-8:], self.left[player_index:4] + self.left[:player_index] + [self.left[4]], (prev_hand[1], prev_hand[0]), player_index)
 
 
 class PlayerDeck:
