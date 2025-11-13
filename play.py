@@ -25,6 +25,9 @@ while True:
     if won and prev_hand[1] == won[-1] and turn == (won[-1] + 2) %4: prev_hand[0] = None
     state = test.state(turn, prev_hand)
     print(f'State for player {turn}: {state}')
+    if len(state[1]) == 0: 
+        k += 1
+        continue  # No possible actions
 
     # This part is a temporary random player for testing
     # Should be replaced by RL agent decision, from state

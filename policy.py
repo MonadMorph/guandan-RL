@@ -97,59 +97,57 @@ class PolicyValueNet(nn.Module):
             logits = logits.masked_fill(~action_mask, -1e9)
         value = self.value_head(h)
         return logits, value
+    
+class Agent:
+    def __init__(self):
+        self.encoder = HandRankEncoder(d_model=128)
+        self.policy_value_net = PolicyValueNet(input_dim=128, hidden_dim=256, num_actions=120)
 
-def masking(state):
-    legal_actions = state[1]
-    ans = {1: [0]*15, 2: [0]*15, 3: [0]*13, 4: [0]*10, 5: [0]*8, 6: [0]*11, 11: [0]*13, 12: [0]*13, 13: [0]*8, 14: [0]*13}
-    for action in legal_actions:
-        ans[action.type][action.rank] = 1
-    flat_mask = []
-    for key in sorted(ans.keys()):
-        flat_mask.extend(ans[key])
-    flat_mask.append(1)  # for pass action
-    return torch.tensor(flat_mask, dtype=torch.bool).unsqueeze(0)  # shape [1, num_actions]
+    def masking(self, state):
+        legal_actions = state[1]
+        ans = {1: [0]*15, 2: [0]*15, 3: [0]*13, 4: [0]*10, 5: [0]*8, 6: [0]*11, 11: [0]*13, 12: [0]*13, 13: [0]*8, 14: [0]*13}
+        for action in legal_actions:
+            ans[action.type][action.rank] = 1
+        flat_mask = []
+        for key in sorted(ans.keys()):
+            flat_mask.extend(ans[key])
+        flat_mask.append(1)  # for pass action
+        return torch.tensor(flat_mask, dtype=torch.bool).unsqueeze(0)  # shape [1, num_actions]
 
+    def select_action(self, state):
+        state_vec = self.encoder(state)                    # [1, 128]
+        action_mask = self.masking(state)                  # [1, 120], bool tensor
 
-encoder = HandRankEncoder(d_model=128)
-policy_value_net = PolicyValueNet(input_dim=128, hidden_dim=256, num_actions=120)
+        logits, value = self.policy_value_net(state_vec, action_mask)
 
-def select_action(state):
-    state_vec = encoder(state)                    # [1, 128]
-    action_mask = masking(state)                  # [1, 120], bool tensor
+        probs = F.softmax(logits, dim=-1)
 
-    logits, value = policy_value_net(state_vec, action_mask)
+        action = torch.multinomial(probs, num_samples=1)
+        logprob = torch.log(probs.gather(1, action))
 
-    masked_logits = logits.masked_fill(~action_mask, -1e9)  # [1, 120]
-    probs = F.softmax(masked_logits, dim=-1)
+        #Transform action index back to Hand
+        action_index = action.item()
+        if action_index == 119:  # pass action
+            return None, logprob, value, action_index
+        elif action_index < 15:
+            hand = Hand(1, action_index)
+        elif action_index < 30:
+            hand = Hand(2, action_index - 15)
+        elif action_index < 43:
+            hand = Hand(3, action_index - 30)
+        elif action_index < 53:
+            hand = Hand(4, action_index - 43)
+        elif action_index < 61:
+            hand = Hand(5, action_index - 53)
+        elif action_index < 72:
+            hand = Hand(6, action_index - 61)
+        elif action_index < 85:
+            hand = Hand(11, action_index - 72)
+        elif action_index < 98:
+            hand = Hand(12, action_index - 85)
+        elif action_index < 106:
+            hand = Hand(13, action_index - 98)
+        elif action_index < 119:
+            hand = Hand(14, action_index - 106)
 
-    action = torch.multinomial(probs, num_samples=1)
-    logprob = torch.log(probs.gather(1, action))
-
-    #Transform action index back to Hand
-    action_index = action.item()
-    if action_index == 119:  # pass action
-        return None, logprob, value
-    elif action_index < 15:
-        hand = Hand(1, action_index)
-    elif action_index < 30:
-        hand = Hand(2, action_index - 15)
-    elif action_index < 43:
-        hand = Hand(3, action_index - 30)
-    elif action_index < 53:
-        hand = Hand(4, action_index - 43)
-    elif action_index < 61:
-        hand = Hand(5, action_index - 53)
-    elif action_index < 72:
-        hand = Hand(6, action_index - 61)
-    elif action_index < 85:
-        hand = Hand(11, action_index - 72)
-    elif action_index < 98:
-        hand = Hand(12, action_index - 85)
-    elif action_index < 106:
-        hand = Hand(13, action_index - 98)
-    elif action_index < 119:
-        hand = Hand(14, action_index - 106)
-
-    return hand, logprob, value
-
-#testing
+        return hand, logprob, value, action_index
