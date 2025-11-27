@@ -1,4 +1,4 @@
-from policy import Agent
+from guandan_transformer import Agent
 from deck import FrenchDeck
 import torch
 import torch.nn.functional as F
@@ -10,6 +10,7 @@ gradient_clip_ratio = 0.5
 learning_rate = 1e-4
 epochs = 10
 
+@torch.no_grad()
 def play_simulation(agent):
     print("Starting a game simulation")
     test = FrenchDeck()
@@ -28,10 +29,6 @@ def play_simulation(agent):
         if prev_hand[1] == turn: prev_hand[0] = None  # Reset if it's the same player's turn, he can play anything
         if won and prev_hand[1] == won[-1] and turn == (won[-1] + 2) %4: prev_hand[0] = None
         state = test.state(turn, prev_hand)
-        if len(state[1]) == 0: 
-            k += 1
-            continue  # No possible actions
-        #Currently history does not include pass actions, test whether this make sense later.
 
         action, logprob, value, action_index = agent.select_action(state)
         history.append((state, logprob, value, action_index))
@@ -72,20 +69,26 @@ def train_one_epoch(agent, optimizer, games_per_epoch=4):
             all_aindex.append(action_index)
 
     # Implement minibatch later if needed 
+    actions     = torch.tensor(all_aindex, dtype=torch.long, device=agent.device).unsqueeze(1)
+    old_logprob = torch.cat(all_logprobs, dim=0).detach().to(agent.device)
+    old_value = torch.cat(all_values, dim=0).detach().to(agent.device)
+    returns     = torch.tensor(all_rewards, dtype=torch.float32, device=agent.device).unsqueeze(1)
 
-    X = torch.cat([agent.encoder(s) for s in all_states], dim=0)   # [B, d_model]
-    masks = torch.cat([agent.masking(s) for s in all_states], dim=0)
-    actions     = torch.tensor(all_aindex, dtype=torch.long).unsqueeze(1)
-    old_logprob = torch.cat(all_logprobs, dim=0).detach()
-    old_value = torch.cat(all_values, dim=0).detach()
-    returns     = torch.tensor(all_rewards, dtype=torch.float32).unsqueeze(1)
+    batch_logits = []
+    batch_values = []
+
+    for s in all_states:
+        logits, value = agent.model_output(s)     # already masked
+        batch_logits.append(logits)               # logits: [1, num_actions]
+        batch_values.append(value)                # value:  [1, 1]
+
+    logits = torch.cat(batch_logits, dim=0)   # [B, num_actions]
+    new_value = torch.cat(batch_values, dim=0)  # [B, 1]
 
     # Pure MC advantage, not using GAE for simplicity
     adv = (returns - old_value)
     adv = (adv - adv.mean()) / (adv.std() + 1e-8)
     target_value = returns
-
-    logits, new_value = agent.policy_value_net(X, masks)
     logprobs_all = torch.log_softmax(logits, dim=-1)
     new_logprob = logprobs_all.gather(1, actions)
 

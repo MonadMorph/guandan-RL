@@ -27,14 +27,20 @@ class FrenchDeck:
         self.players = [PlayerDeck(hands[i], self.orderofRanks) for i in range(4)]
 
     def play(self, player_index, hand):
-        self.players[player_index].play(hand)
         self.history.append((player_index, hand))
-        self.left[4] -= hand.size
-        self.left[player_index] -= hand.size
+        if hand is not None:
+            self.players[player_index].play(hand)
+            self.left[4] -= hand.size
+            self.left[player_index] -= hand.size
 
     def state(self, player_index, prev_hand):
-        #private hand, private legal actions, public history (last 8), public cards left (mine, next, ..., total), public last hand, public last player, player index
-        return (self.players[player_index].count, self.players[player_index].can_play(prev_hand[0]), [(None, None) for _ in range(max(0,8-len(self.history)))] +self.history[-8:], self.left[player_index:4] + self.left[:player_index] + [self.left[4]], (prev_hand[1], prev_hand[0]), player_index)
+        #private hand, private legal actions, public history (last 16), public cards left (mine, next, ..., total), public last hand, public last player, player index
+        return (self.players[player_index].count + [len(self.players[player_index].royalflush)], 
+                self.players[player_index].can_play(prev_hand[0]), 
+                self.history[-16:], 
+                self.left[player_index:4] + self.left[:player_index] + [self.left[4]], 
+                (prev_hand[1], prev_hand[0]), 
+                player_index)
 
 
 class PlayerDeck:

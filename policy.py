@@ -23,13 +23,13 @@ class HandRankEncoder(nn.Module):
         return x
     
     #private hand, private legal actions, public history (last 8), public cards left (mine, next, ..., total), public last hand, public last player, player index
-    # 15 + exclude +8*(4+10+1+1) + 5 + (4+10+1+1) +4 = 168
+    # 15 + exclude +16*(4+10+1+1) + 5 + (4+10+1+1) +4 = 296
     def encode_state(self,state):
         vecs = []
         x = [i/8.0 for i in state[0]]
         vecs.extend(x)
 
-        for i in range(8):
+        for i in range(16):
             #Hand encoding, 4 for one-hotplayer, 10 for type one-hot, 1 for bomb, 1 for order of rank
             players_en = [0]*4
             if state[2][i][0] is not None:
