@@ -43,7 +43,7 @@ class GuandanTransformer(nn.Module):
         self.value_head = nn.Linear(d_model, 1)
 
     def forward(self, tokens, history_length):
-        mask = torch.tensor([False]*2 + (16-len(history_length)) * [True] + (len(history_length)+3) * [False])
+        mask = torch.tensor([False]*2 + (16-history_length) * [True] + (history_length+3) * [False])
         device = self.cls_token.device
         mask = mask.unsqueeze(0).to(device)
 
@@ -52,7 +52,7 @@ class GuandanTransformer(nn.Module):
             x = torch.tensor(tok, dtype=torch.float32, device=device).unsqueeze(0)  # [1, dim]
             proj_tokens.append(proj(x))                             # [1, d_model]
 
-        X = torch.cat(proj_tokens, dim=0).unsqueeze(0).to(device)
+        X = torch.cat(proj_tokens, dim=0).unsqueeze(0)
 
         cls = self.cls_token.expand(X.size(0), -1, -1)
         X = torch.cat([cls, X], dim=1)
@@ -135,7 +135,7 @@ class Agent:
         for key in sorted(ans.keys()):
             flat_mask.extend(ans[key])
         flat_mask.append(1)  # for pass action
-        return torch.tensor(flat_mask, dtype=torch.bool).unsqueeze(0)  # shape [1, num_actions]
+        return torch.tensor(flat_mask, dtype=torch.bool, device=self.device).unsqueeze(0)  # shape [1, num_actions]
     
     def model_output(self, state):
         state_vec = self.encode_state(state)                    # [1, 128]
