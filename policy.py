@@ -2,10 +2,22 @@ import torch.nn as nn
 import torch
 import torch.nn.functional as F
 from deck import Hand
+import random
 
 def trained_policy(state):
-    pass    
+    pass 
 
+class RandomAgent():
+    def select_action(self, state):
+        legal_actions = state[1]
+        legal_actions.append(None)  # add pass action
+        if not legal_actions:
+            return None, torch.tensor([[0.0]]), torch.tensor([[0.0]]), -1  # No action available
+        action = random.choice(legal_actions)
+        logprob = torch.log(torch.tensor([[1.0 / len(legal_actions)]]))  # Uniform probability
+        value = torch.tensor([[0.0]])  # Dummy value
+        action_index = -1  # Dummy index
+        return action, logprob, value, action_index
 
 class HandRankEncoder(nn.Module):
     def __init__(self, d_model: int):
