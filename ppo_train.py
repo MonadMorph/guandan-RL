@@ -8,7 +8,7 @@ alpha = 0.01 # entropy coefficient
 PPO_clip_ratio = 0.2 # PPO clip parameter
 gradient_clip_ratio = 0.5
 learning_rate = 1e-4
-epochs = 10
+epochs = 50
 
 @torch.no_grad()
 def play_simulation(agent):
@@ -33,9 +33,8 @@ def play_simulation(agent):
         action, logprob, value, action_index = agent.select_action(state)
         history.append((state, logprob, value, action_index))
 
-        if action is not None:
-            test.play(turn, action)
-            prev_hand = [action, turn]
+        test.play(turn, action)
+        prev_hand = [action, turn]
         if sum(test.players[turn].count) == 0:
             won.append(turn)
             if len(won) == 2 and won[0]%2 == won[1]%2:
@@ -114,7 +113,9 @@ agent = Agent()
 print("Agent initialized")
 
 optimizer = torch.optim.Adam(agent.policy_value_net.parameters(), lr=learning_rate)
-for _ in range(epochs):
+for i in range(epochs):
     loss = train_one_epoch(agent, optimizer, games_per_epoch=4)
-    print("Training epoch completed")
+    print(f"Training epoch {i} completed")
     print("Loss:", loss)
+
+torch.save(agent.policy_value_net.state_dict(), "policy_value_net.pt")
