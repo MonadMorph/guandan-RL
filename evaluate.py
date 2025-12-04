@@ -3,10 +3,17 @@ from policy import RandomAgent
 from deck import FrenchDeck
 import torch
 
+contrast_timestep = 200
+num_games = 100
 
-contrast_agent = RandomAgent()
+if contrast_timestep % 20 != 0:
+    contrast_agent = RandomAgent()
+else:
+    contrast_agent = Agent()
+    contrast_agent.policy_value_net.load_state_dict(torch.load(f"models/policy_value_net_{contrast_timestep}.pt"))
+
 agent = Agent()
-agent.policy_value_net.load_state_dict(torch.load("policy_value_net.pt"))
+agent.policy_value_net.load_state_dict(torch.load("models/policy_value_net_final.pt"))
 
 def evaluate(agent, contrast_agent, num_games=100):
     wins = 0
@@ -64,8 +71,8 @@ def evaluate(agent, contrast_agent, num_games=100):
                     break
             k += 1
 
-    print(f'Evaluation completed over {num_games} games.')
+    print(f'Evaluation completed over {num_games} games, against contrast agent at timestep {contrast_timestep}.')
     print(f'Agent won {wins} games.')
     print(f'Average score: {sum(scores)/num_games}')
 
-evaluate(agent, contrast_agent, num_games=25)
+evaluate(agent, contrast_agent, num_games)

@@ -5,13 +5,13 @@ import torch.nn.functional as F
 
 beta = 0.5  # value loss coefficient
 alpha = 0.01 # entropy coefficient
+remaining_card_penalty = 0.03
+teammate_remaining_card_penalty = 0.005
 PPO_clip_ratio = 0.2 # PPO clip parameter
 gradient_clip_ratio = 0.5
-learning_rate = 1e-4
-epochs = 10
 
 @torch.no_grad()
-def play_simulation(agent):
+def play_simulation(agent, contrast_agent = None):
     print("Starting a game simulation")
     test = FrenchDeck()
     test.distribute()
@@ -30,8 +30,11 @@ def play_simulation(agent):
         if won and prev_hand[1] == won[-1] and turn == (won[-1] + 2) %4: prev_hand[0] = None
         state = test.state(turn, prev_hand)
 
-        action, logprob, value, action_index = agent.select_action(state)
-        history.append((state, logprob, value, action_index))
+        if contrast_agent and turn %2 == 1: # freeze contrast agent for player 1 and 3
+            action, logprob, value, action_index = contrast_agent.select_action(state)
+        else:
+            action, logprob, value, action_index = agent.select_action(state)
+            history.append((state, logprob, value, action_index)) # only store for training agent
 
         test.play(turn, action)
         prev_hand = [action, turn]
@@ -51,16 +54,21 @@ def play_simulation(agent):
     print(f"Game finished in {k} turns, winners: {result[0]}, {result[1]} with score {result[2]}")
     return result, history
 
-def train_one_epoch(agent, optimizer, games_per_epoch=4):
+def train_one_epoch(agent, optimizer, games_per_epoch=4, contrast_agent = None):
     all_states, all_logprobs, all_values, all_rewards, all_aindex = [], [], [], [], []
 
     for _ in range(games_per_epoch):
-        result, history = play_simulation(agent)       # each history = [(state, logprob, value, action_index), ...]
+        result, history = play_simulation(agent, contrast_agent)       # each history = [(state, logprob, value, action_index), ...]
         winners = {result[0], result[1]}
         score   = float(result[2])
 
         for (state, logprob, value, action_index) in history:
             reward = score if state[-1] in winners else -score
+
+            # reward shaping based on remaining cards
+            reward -= remaining_card_penalty * state[3][0] / 27  # own remaining cards
+            reward -= teammate_remaining_card_penalty * state[3][2] / 27  # own remaining cards
+
             all_states.append(state)
             all_logprobs.append(logprob)
             all_values.append(value)
@@ -108,14 +116,3 @@ def train_one_epoch(agent, optimizer, games_per_epoch=4):
     optimizer.step()
 
     return loss.item()
-
-agent = Agent()
-print("Agent initialized")
-
-optimizer = torch.optim.Adam(agent.policy_value_net.parameters(), lr=learning_rate)
-for _ in range(epochs):
-    loss = train_one_epoch(agent, optimizer, games_per_epoch=4)
-    print("Training epoch completed")
-    print("Loss:", loss)
-
-torch.save(agent.policy_value_net.state_dict(), "policy_value_net.pt")
