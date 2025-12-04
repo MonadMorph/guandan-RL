@@ -33,9 +33,8 @@ def play_simulation(agent):
         action, logprob, value, action_index = agent.select_action(state)
         history.append((state, logprob, value, action_index))
 
-        if action is not None:
-            test.play(turn, action)
-            prev_hand = [action, turn]
+        test.play(turn, action)
+        prev_hand = [action, turn]
         if sum(test.players[turn].count) == 0:
             won.append(turn)
             if len(won) == 2 and won[0]%2 == won[1]%2:
@@ -118,3 +117,5 @@ for _ in range(epochs):
     loss = train_one_epoch(agent, optimizer, games_per_epoch=4)
     print("Training epoch completed")
     print("Loss:", loss)
+
+torch.save(agent.policy_value_net.state_dict(), "policy_value_net.pt")
