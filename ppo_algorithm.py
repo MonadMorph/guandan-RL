@@ -8,10 +8,10 @@ alpha = 0.01 # entropy coefficient
 PPO_clip_ratio = 0.2 # PPO clip parameter
 gradient_clip_ratio = 0.5
 learning_rate = 1e-4
-epochs = 50
+epochs = 10
 
 @torch.no_grad()
-def play_simulation(agent, contrast_agent = None):
+def play_simulation(agent):
     print("Starting a game simulation")
     test = FrenchDeck()
     test.distribute()
@@ -30,11 +30,8 @@ def play_simulation(agent, contrast_agent = None):
         if won and prev_hand[1] == won[-1] and turn == (won[-1] + 2) %4: prev_hand[0] = None
         state = test.state(turn, prev_hand)
 
-        if contrast_agent and turn %2 == 1: # freeze contrast agent for player 1 and 3
-            action, logprob, value, action_index = contrast_agent.select_action(state)
-        else:
-            action, logprob, value, action_index = agent.select_action(state)
-            history.append((state, logprob, value, action_index)) # only store for training agent
+        action, logprob, value, action_index = agent.select_action(state)
+        history.append((state, logprob, value, action_index))
 
         test.play(turn, action)
         prev_hand = [action, turn]
@@ -54,11 +51,11 @@ def play_simulation(agent, contrast_agent = None):
     print(f"Game finished in {k} turns, winners: {result[0]}, {result[1]} with score {result[2]}")
     return result, history
 
-def train_one_epoch(agent, optimizer, games_per_epoch=4, contrast_agent = None):
+def train_one_epoch(agent, optimizer, games_per_epoch=4):
     all_states, all_logprobs, all_values, all_rewards, all_aindex = [], [], [], [], []
 
     for _ in range(games_per_epoch):
-        result, history = play_simulation(agent, contrast_agent)       # each history = [(state, logprob, value, action_index), ...]
+        result, history = play_simulation(agent)       # each history = [(state, logprob, value, action_index), ...]
         winners = {result[0], result[1]}
         score   = float(result[2])
 
@@ -111,3 +108,14 @@ def train_one_epoch(agent, optimizer, games_per_epoch=4, contrast_agent = None):
     optimizer.step()
 
     return loss.item()
+
+agent = Agent()
+print("Agent initialized")
+
+optimizer = torch.optim.Adam(agent.policy_value_net.parameters(), lr=learning_rate)
+for _ in range(epochs):
+    loss = train_one_epoch(agent, optimizer, games_per_epoch=4)
+    print("Training epoch completed")
+    print("Loss:", loss)
+
+torch.save(agent.policy_value_net.state_dict(), "policy_value_net.pt")
