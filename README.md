@@ -7,9 +7,7 @@ Currently my idea is to use proximal policy gradient for RL algorithm. The polic
 
 I used Transformer as model backbone. The states are encoded as 20 tokens. I added attention masking as padding for history hands, while we not yet as full history. The model itself consists of 2 transformer layers each with 4 heads. It only has around 450k params, and could run in ms on every computer.
 
-Train with `python training.py` and evaluate with `python evaluate.py`. Currently I only played it with random policy, and it would beat random for 95% the times and with high score.
-
-These are my results of training the agent for 500 epoches, and playing against agents at different epoches:
+Train with `python training.py` and evaluate with `python evaluate.py`. These are my results of training the agent for 500 epoches, and playing against agents at different epoches:
 
 | Epoch | Win Rate (%) | Avg Score |
 | ----- | ------------ | --------- |
@@ -18,3 +16,5 @@ These are my results of training the agent for 500 epoches, and playing against 
 | 199   | 59           | 0.49      |
 | 299   | 57           | 0.34      |
 | 399   | 49           | -0.07     |
+
+Epoch 0 is in fact the random agent.
