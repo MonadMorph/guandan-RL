@@ -4,7 +4,6 @@ import torch
 import torch.nn.functional as F
 
 beta = 0.5  # value loss coefficient
-alpha = 0.01 # entropy coefficient
 remaining_card_penalty = 0.03
 teammate_remaining_card_penalty = 0.005
 PPO_clip_ratio = 0.2 # PPO clip parameter
@@ -12,7 +11,7 @@ gradient_clip_ratio = 0.5
 
 @torch.no_grad()
 def play_simulation(agent, contrast_agent = None):
-    print("Starting a game simulation")
+    # print("Starting a game simulation")
     test = FrenchDeck()
     test.distribute()
 
@@ -51,10 +50,10 @@ def play_simulation(agent, contrast_agent = None):
                 break
         k += 1
 
-    print(f"Game finished in {k} turns, winners: {result[0]}, {result[1]} with score {result[2]}")
+    # print(f"Game finished in {k} turns, winners: {result[0]}, {result[1]} with score {result[2]}")
     return result, history
 
-def train_one_epoch(agent, optimizer, games_per_epoch=4, contrast_agent = None):
+def train_one_epoch(agent, optimizer, alpha = 0.01, games_per_epoch=4, contrast_agent = None):
     all_states, all_logprobs, all_values, all_rewards, all_aindex = [], [], [], [], []
 
     for _ in range(games_per_epoch):

@@ -18,3 +18,26 @@ Train with `python training.py` and evaluate with `python evaluate.py`. These ar
 | 399   | 49           | -0.07     |
 
 Epoch 0 is in fact the random agent.
+
+250 + 450:
+
+Evaluation completed over 100 games, against policy_value_net_50.pt.
+Agent won 62 games. Average score: 0.55
+Evaluation completed over 100 games, against policy_value_net_100.pt.
+Agent won 54 games. Average score: 0.16
+Evaluation completed over 100 games, against policy_value_net_150.pt.
+Agent won 58 games. Average score: 0.32
+Evaluation completed over 100 games, against policy_value_net_200.pt.
+Agent won 57 games. Average score: 0.27
+Evaluation completed over 100 games, against policy_value_net_250.pt.
+Agent won 49 games. Average score: 0.07
+Evaluation completed over 100 games, against policy_value_net_0.pt.
+Agent won 69 games. Average score: 0.9
+Evaluation completed over 100 games, against policy_value_net_300.pt.
+Agent won 49 games. Average score: -0.01
+Evaluation completed over 100 games, against policy_value_net_350.pt.
+Agent won 52 games. Average score: 0.09
+Evaluation completed over 100 games, against policy_value_net_400.pt.
+Agent won 58 games. Average score: 0.25
+Evaluation completed over 100 games, against policy_value_net_final.pt.
+Agent won 44 games. Average score: -0.27

@@ -1,16 +1,10 @@
 from guandan_transformer import Agent
 from policy import RandomAgent
 from deck import FrenchDeck
-import torch
+import torch, os
 
 contrast_timestep = 200
 num_games = 100
-
-if contrast_timestep % 20 != 0:
-    contrast_agent = RandomAgent()
-else:
-    contrast_agent = Agent()
-    contrast_agent.policy_value_net.load_state_dict(torch.load(f"models/policy_value_net_{contrast_timestep}.pt"))
 
 agent = Agent()
 agent.policy_value_net.load_state_dict(torch.load("models/policy_value_net_final.pt"))
@@ -54,7 +48,7 @@ def evaluate(agent, contrast_agent, num_games=100):
                 won.append(turn)
                 if len(won) == 2 and won[0]%2 == won[1]%2:
                     score = 3
-                    print(f'Team of player {won[0]} and player {(won[0]+2)%4} wins with score {score}!')
+                    # print(f'Team of player {won[0]} and player {(won[0]+2)%4} wins with score {score}!')
                     if won[0] % 2 == 0:
                         wins += 1
                         scores.append(score)
@@ -63,7 +57,7 @@ def evaluate(agent, contrast_agent, num_games=100):
                 if len(won) == 3:
                     if won[0]%2 == won[2]%2: score = 2
                     else: score = 1
-                    print(f'Team of player {won[0]} and player {(won[0]+2)%4} wins with score {score}!')
+                    # print(f'Team of player {won[0]} and player {(won[0]+2)%4} wins with score {score}!')
                     if won[0] % 2 == 0:
                         wins += 1
                         scores.append(score)
@@ -71,8 +65,11 @@ def evaluate(agent, contrast_agent, num_games=100):
                     break
             k += 1
 
-    print(f'Evaluation completed over {num_games} games, against contrast agent at timestep {contrast_timestep}.')
-    print(f'Agent won {wins} games.')
-    print(f'Average score: {sum(scores)/num_games}')
+    print(f'Agent won {wins} games. Average score: {sum(scores)/num_games}')
 
-evaluate(agent, contrast_agent, num_games)
+for file in os.listdir("models"):
+    if file.startswith("policy_value_net_") and file.endswith(".pt"):
+        contrast_agent = Agent()
+        contrast_agent.policy_value_net.load_state_dict(torch.load(os.path.join("models", file)))
+        print(f'Evaluation completed over {num_games} games, against {file}.')
+        evaluate(agent, contrast_agent, num_games)
