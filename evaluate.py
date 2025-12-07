@@ -2,18 +2,20 @@ from guandan_transformer import Agent
 from policy import RandomAgent
 from deck import FrenchDeck
 import torch, os
+from tqdm import trange
 
 contrast_timestep = 200
 num_games = 100
 
 agent = Agent()
-agent.policy_value_net.load_state_dict(torch.load("models/policy_value_net_final.pt"))
+agent.policy_value_net.load_state_dict(torch.load("Bests/policy_value_net_final.pt"))
 
 def evaluate(agent, contrast_agent, num_games=100):
     wins = 0
     scores = []
+    pbar = trange(num_games, desc="Evaluating")
 
-    for _ in range(num_games):
+    for _ in pbar:
         test = FrenchDeck()
         test.distribute()
 
@@ -67,9 +69,15 @@ def evaluate(agent, contrast_agent, num_games=100):
 
     print(f'Agent won {wins} games. Average score: {sum(scores)/num_games}')
 
-for file in os.listdir("models"):
+
+'''for file in os.listdir("models"):
     if file.startswith("policy_value_net_") and file.endswith(".pt"):
         contrast_agent = Agent()
         contrast_agent.policy_value_net.load_state_dict(torch.load(os.path.join("models", file)))
         print(f'Evaluation completed over {num_games} games, against {file}.')
-        evaluate(agent, contrast_agent, num_games)
+        evaluate(agent, contrast_agent, num_games)'''
+
+contrast_agent = Agent()
+contrast_agent.policy_value_net.load_state_dict(torch.load("Bests/policy_value_net_250+450.pt"))
+print(f'Evaluation completed over {num_games} games, against 50.')
+evaluate(agent, contrast_agent, 1000)
