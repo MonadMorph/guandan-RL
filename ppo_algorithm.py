@@ -2,6 +2,7 @@ from guandan_transformer import Agent
 from deck import FrenchDeck
 import torch
 import torch.nn.functional as F
+import random
 
 beta = 0.5  # value loss coefficient
 remaining_card_penalty = 0.03
@@ -19,6 +20,7 @@ def play_simulation(agent, contrast_agent = None):
     prev_hand = [None, 0]  # Placeholder for other hand, if needed
     won = []
     history = []
+    old_teammate = random.random() < 0.5
 
     while True:
         turn = k%4
@@ -29,7 +31,7 @@ def play_simulation(agent, contrast_agent = None):
         if won and prev_hand[1] == won[-1] and turn == (won[-1] + 2) %4: prev_hand[0] = None
         state = test.state(turn, prev_hand)
 
-        if contrast_agent and turn %2 == 1: # freeze contrast agent for player 1 and 3
+        if contrast_agent and (turn %2 == 1 or (old_teammate and turn == 2)): # freeze contrast agent for player 1 and 3
             action, logprob, value, action_index = contrast_agent.select_action(state)
         else:
             action, logprob, value, action_index = agent.select_action(state)
