@@ -4,7 +4,7 @@ import torch.nn.functional as F
 from deck import Hand
 
 class GuandanTransformer(nn.Module):
-    def __init__(self, d_model=128, n_heads=4, n_layers=2, num_actions=120):
+    def __init__(self, d_model=128, n_heads=4, n_layers=2, num_actions=133):
         super().__init__()
         self.token_dims = {
             "hand": 16,              # 15 ranks + 1 royal flush count
@@ -87,13 +87,13 @@ class Agent:
             #Hand encoding, 4 for one-hotplayer, 10 for type one-hot, 1 for bomb, 1 for order of rank
             players_en = [0]*4
             players_en[state[2][i][0]] = 1
-            type_en = [0]*11
+            type_en = [0]*12
             if state[2][i][1] is not None:
                 type = state[2][i][1].type
                 if type < 10:
                     type_en[type-1] = 1
                 else: 
-                    type_en[type-5] = 1
+                    type_en[type-4] = 1
                     type_en[-1] = 1  # bomb indicator
                 rank_en = 1/14 * state[2][i][1].rank
             else: rank_en = 0
@@ -128,13 +128,15 @@ class Agent:
     
     def masking(self, state):
         legal_actions = state[1]
-        ans = {1: [0]*15, 2: [0]*15, 3: [0]*13, 4: [0]*10, 5: [0]*8, 6: [0]*11, 11: [0]*13, 12: [0]*13, 13: [0]*8, 14: [0]*13}
+        ans = {1: [0]*15, 2: [0]*15, 3: [0]*13, 4: [0]*10, 5: [0]*8, 6: [0]*11, 7: [0]*13, 11:[0]*13, 12: [0]*13, 13: [0]*8, 14: [0]*13}
         for action in legal_actions:
             ans[action.type][action.rank] = 1
         flat_mask = []
         for key in sorted(ans.keys()):
             flat_mask.extend(ans[key])
         flat_mask.append(1)  # for pass action
+        if state[4][0] == state[5] and state[4][1].type == 7 and state[4][1].aux_rank is None: # To choose 2 in 3+2, no passing!
+            flat_mask[-1] = 0
         return torch.tensor(flat_mask, dtype=torch.bool, device=self.device).unsqueeze(0)  # shape [1, num_actions]
     
     def model_output(self, state):
@@ -152,7 +154,7 @@ class Agent:
 
         #Transform action index back to Hand
         action_index = action.item()
-        if action_index == 119:  # pass action
+        if action_index == 132:  # pass action
             return None, logprob, value, action_index
         elif action_index < 15:
             hand = Hand(1, action_index)
@@ -167,12 +169,14 @@ class Agent:
         elif action_index < 72:
             hand = Hand(6, action_index - 61)
         elif action_index < 85:
-            hand = Hand(11, action_index - 72)
+            hand = Hand(7, action_index - 72)
         elif action_index < 98:
-            hand = Hand(12, action_index - 85)
-        elif action_index < 106:
-            hand = Hand(13, action_index - 98)
+            hand = Hand(11, action_index - 85)
+        elif action_index < 111:
+            hand = Hand(12, action_index - 98)
         elif action_index < 119:
-            hand = Hand(14, action_index - 106)
+            hand = Hand(13, action_index - 111)
+        elif action_index < 132:
+            hand = Hand(14, action_index - 119)
 
         return hand, logprob, value, action_index

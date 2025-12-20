@@ -27,14 +27,17 @@ class FrenchDeck:
         self.players = [PlayerDeck(hands[i], self.orderofRanks) for i in range(4)]
 
     def play(self, player_index, hand):
-        self.history.append((player_index, hand))
+        if player_index == self.history[-1][0] and hand.type == 7 and hand.aux_rank is not None: # Handle second "play" of 3+2
+            self.history[-1] = (player_index, hand)
+        else:
+            self.history.append((player_index, hand))
         if hand is not None:
             self.players[player_index].play(hand)
             self.left[4] -= hand.size
             self.left[player_index] -= hand.size
 
     def state(self, player_index, prev_hand):
-        #private hand, private legal actions, public history (last 16), public cards left (mine, next, ..., total), public last hand, public last player, player index
+        #private hand, private legal actions, public history (last 16), public cards left (mine, next, ..., total), (public last player index, public last hand), player index
         return (self.players[player_index].count + [len(self.players[player_index].royalflush)], 
                 self.players[player_index].can_play(prev_hand[0]), 
                 self.history[-16:], 
@@ -113,28 +116,42 @@ class PlayerDeck:
 
     
     def _legal(self):
-        return [self._single(), self._pair(), self._three(), self._three_of_pair(), self._flush(), self._two_of_three(), self._four(), self._five(), self.royalflush, self._six()] #bombs: 11,12,13,14
+        return [self._single(), self._pair(), self._three(), self._three_of_pair(), self._flush(), self._two_of_three(), self._three(), self._four(), self._five(), self.royalflush, self._six()] #bombs: 11,12,13,14
     
     
     def can_play(self, other_hand=None):
         hand = self._legal()
+        pairs = hand[1].copy()
+        if other_hand.type == 7 and other_hand.aux_rank is None: # aux_rank is None, which means this is for selecting the "2" of 3+2
+            ans = [[] for _ in range(len(hand))]
+            try:
+                pairs.remove(other_hand.rank)
+            except ValueError:
+                pass
+            ans[1] = pairs
+            return ans
+
         if other_hand is None:
             pass
         elif other_hand.type <= 6:
-            for i in range(6):
+            for i in range(7):
                 if other_hand.type == i+1:
                     hand[i] = [card for card in hand[i] if card > other_hand.rank]
+                    if other_hand.type == 7: # All these to check if we have a valid pair for 3+2
+                        if len(pairs) == 0: hand[6] = []
+                        elif len(pairs) == 1 and pairs[0] in hand[6]:
+                            hand[6].remove(pairs[0])
                 else: hand[i] = []
         else: 
-            for i in range(10):
-                if other_hand.type > i+5: hand[i] = []
-                elif other_hand.type == i+5:
+            for i in range(11):
+                if other_hand.type > i+4: hand[i] = []
+                elif other_hand.type == i+4:
                     hand[i] = [card for card in hand[i] if card > other_hand.rank]
         ans = []
         for i in range(len(hand)):
-            if i <= 5:
+            if i <= 6:
                 ans += [Hand(i+1, card) for card in hand[i]]
-            else: ans += [Hand(i+5, card) for card in hand[i]]
+            else: ans += [Hand(i+4, card) for card in hand[i]]
         return ans
     
     def play(self, hand):
@@ -150,6 +167,11 @@ class PlayerDeck:
         if hand.type == 6:
             for i in range(2):
                 self.count[hand.rank + i] -= 3
+        if hand.type == 7: # 3+2 is "played" twice
+            if hand.aux_rank == None:
+                self.count[hand.rank] -= 3
+            else:
+                self.count[hand.aux_rank] -= 2
         if hand.type == 11 or hand.type == 12:
             self.count[hand.rank] -= (hand.type-7)
         if hand.type == 14:
@@ -165,18 +187,20 @@ class PlayerDeck:
 4: three of pair
 5: flush
 6: two of three
+7: three plus two
 11: four
 12: five
 13: royal flush
 14: six'''
 class Hand:
     orderofRanks = ['3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A', '2', 'Black Joker', 'Red Joker']
-    def __init__(self, type, rank):
+    def __init__(self, type, rank, aux_rank = None):
         self.type = type
         self.rank = rank #Rank now is just the index in orderofRanks
+        self.aux_rank = aux_rank # only for 3+2
         if self.type <= 3: self.size = self.type
         elif self.type == 4 or self.type == 6: self.size = 6
-        elif self.type == 5 or self.type == 13: self.size = 5
+        elif self.type == 5 or self.type == 13 or self.type == 7: self.size = 5
         elif self.type == 11 or self.type == 12: self.size = self.type - 7
         elif self.type == 14: self.size = 6
 
@@ -189,6 +213,8 @@ class Hand:
             return ' '.join([self.orderofRanks[self.rank+i] for i in range(5)])
         elif self.type == 6:
             return ' '.join([self.orderofRanks[self.rank+i] for i in range(2) for _ in range(3)])
+        elif self.type == 7:
+            return (self.orderofRanks[self.rank] + ' ')*3 + (self.orderofRanks[self.aux_rank] + ' ')*2
         elif self.type == 11 or self.type == 12:
             return (self.orderofRanks[self.rank] + ' ')*(self.type-7)
         elif self.type == 13:

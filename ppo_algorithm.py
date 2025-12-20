@@ -1,5 +1,5 @@
 from guandan_transformer import Agent
-from deck import FrenchDeck
+from deck import FrenchDeck, Hand
 import torch
 import torch.nn.functional as F
 import random
@@ -20,14 +20,15 @@ def play_simulation(agent, contrast_agent = None):
     prev_hand = [None, 0]  # Placeholder for other hand, if needed
     won = []
     history = []
-    old_teammate = random.random() < 0.5
+    old_teammate = random.random() < 0.5 # Half freeze only opponent, half freeze teammate as well.
 
     while True:
         turn = k%4
         if turn in won:
             k += 1
             continue
-        if prev_hand[1] == turn: prev_hand[0] = None  # Reset if it's the same player's turn, he can play anything
+        if prev_hand[1] == turn and (prev_hand[0].type != 7 or prev_hand.aux_rank is not None):
+            prev_hand[0] = None  # Reset if it's the same player's turn, he can play anything
         if won and prev_hand[1] == won[-1] and turn == (won[-1] + 2) %4: prev_hand[0] = None
         state = test.state(turn, prev_hand)
 
@@ -35,10 +36,17 @@ def play_simulation(agent, contrast_agent = None):
             action, logprob, value, action_index = contrast_agent.select_action(state)
         else:
             action, logprob, value, action_index = agent.select_action(state)
-            history.append((state, logprob, value, action_index)) # only store for training agent
-
+            history.append((state, logprob, value, action_index)) # only store for training agent            
+        
+        if prev_hand[1] == turn and prev_hand[0] is not None: # didn't reset, must be 3 in 3+2
+            prev_hand.aux_rank = action.rank # This is a bit tricky case, while playing the 2, the model should record selection a pair, while the deck should record 3+2 as a whole
+            # So we need fixing the action here, just add the new pair action to aux_rank
+            action = prev_hand
         test.play(turn, action)
         prev_hand = [action, turn]
+        if action.type == 7 and action.aux_rank is None: # So for 3+2, we got the 3 but not the 2. Continue without increases turn.
+            continue
+
         if sum(test.players[turn].count) == 0:
             won.append(turn)
             if len(won) == 2 and won[0]%2 == won[1]%2:
