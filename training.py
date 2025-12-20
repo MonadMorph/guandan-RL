@@ -5,14 +5,14 @@ from tqdm import trange
 import random
 
 learning_rate = 1e-4
-epochs1 = 300
-epochs2 = 500
+epochs1 = 0
+epochs2 = 300
 checkpoint = 50
 old_agent_mix_prob = 0.3
 max_entropy_coef = 0.02
 
 agent = Agent()
-# agent.policy_value_net.load_state_dict(torch.load("policy_value_net.pt"))
+agent.policy_value_net.load_state_dict(torch.load("Bests/policy_value_net_250+450.pt"))
 print("Agent initialized")
 
 os.makedirs("models", exist_ok=True)
@@ -21,6 +21,9 @@ pbar = trange(epochs1 + epochs2, desc="Training")
 
 optimizer = torch.optim.Adam(agent.policy_value_net.parameters(), lr=learning_rate)
 checkpoints = []
+for file in os.listdir("models"):
+    if file.startswith("policy_value_net_") and file.endswith(".pt"):
+        checkpoints.append(os.path.join("models", file))
 
 # First phase training
 for i in pbar:
