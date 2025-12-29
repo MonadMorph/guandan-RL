@@ -5,14 +5,14 @@ from tqdm import trange
 import random
 
 learning_rate = 1e-4
-epochs1 = 0
+epochs1 = 100
 epochs2 = 300
 checkpoint = 50
 old_agent_mix_prob = 0.3
 max_entropy_coef = 0.02
 
 agent = Agent()
-agent.policy_value_net.load_state_dict(torch.load("Bests/policy_value_net_250+450.pt"))
+#agent.policy_value_net.load_state_dict(torch.load("Bests/policy_value_net_250+450.pt"))
 print("Agent initialized")
 
 os.makedirs("models", exist_ok=True)

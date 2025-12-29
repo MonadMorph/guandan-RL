@@ -8,9 +8,9 @@ class GuandanTransformer(nn.Module):
         super().__init__()
         self.token_dims = {
             "hand": 16,              # 15 ranks + 1 royal flush count
-            "history": 16*16,        # 16 history entries, each 16 dims
+            "history": 16*17,        # 16 history entries, each 17 dims
             "cards_left": 5,
-            "last_hand": 16,
+            "last_hand": 17,
             "player": 4,
         }
         self.num_tokens = 1 + 16 + 1 + 1 + 1   # 20 total tokens
@@ -18,9 +18,9 @@ class GuandanTransformer(nn.Module):
             nn.Linear(in_features, d_model)
             for in_features in [
                 16,         # hand
-                *([16]*16),  # history entries
+                *([17]*16),  # history entries
                 5,          # cards_left
-                16,         # last_hand
+                17,         # last_hand
                 4           # player index
             ]
         ])
@@ -58,7 +58,7 @@ class GuandanTransformer(nn.Module):
         X = torch.cat([cls, X], dim=1)
 
         # Run transformer
-        Y = self.transformer(X, src_key_padding_mask = ~mask)   # [B, num_tokens+1, d_model]
+        Y = self.transformer(X, src_key_padding_mask = mask)   # [B, num_tokens+1, d_model]
 
         # Use CLS output
         final_hidden = self.norm(Y[:, 0, :])  # [B, d_model]
@@ -81,10 +81,10 @@ class Agent:
         vecs.append(x)
 
         for _ in range(16 - len(state[2])):
-            vecs.append([0]*16) #padding for history
+            vecs.append([0]*17) #padding for history
 
         for i in range(len(state[2])):
-            #Hand encoding, 4 for one-hotplayer, 10 for type one-hot, 1 for bomb, 1 for order of rank
+            #Hand encoding, 4 for one-hotplayer, 11 for type one-hot, 1 for bomb, 1 for order of rank
             players_en = [0]*4
             players_en[state[2][i][0]] = 1
             type_en = [0]*12
@@ -107,13 +107,13 @@ class Agent:
         players_en = [0]*4
         if state[4][0] is not None:
             players_en[state[4][0]] = 1
-        type_en = [0]*11
+        type_en = [0]*12
         if state[4][1] is not None:
             type = state[4][1].type
             if type < 10:                           
                 type_en[type-1] = 1
             else: 
-                type_en[type-5] = 1
+                type_en[type-4] = 1
                 type_en[-1] = 1  # bomb indicator           
             rank_en = 1/14 * state[4][1].rank
         else: rank_en = 0
@@ -135,7 +135,7 @@ class Agent:
         for key in sorted(ans.keys()):
             flat_mask.extend(ans[key])
         flat_mask.append(1)  # for pass action
-        if state[4][0] == state[5] and state[4][1].type == 7 and state[4][1].aux_rank is None: # To choose 2 in 3+2, no passing!
+        if state[4][0] == state[5] and state[4][1] is not None and state[4][1].type == 7 and state[4][1].aux_rank is None: # To choose 2 in 3+2, no passing!
             flat_mask[-1] = 0
         return torch.tensor(flat_mask, dtype=torch.bool, device=self.device).unsqueeze(0)  # shape [1, num_actions]
     
@@ -148,6 +148,7 @@ class Agent:
 
     def select_action(self, state):
         logits, value = self.model_output(state)
+        # logits: [1, 133]
         probs = F.softmax(logits, dim=-1)
         action = torch.multinomial(probs, num_samples=1)
         logprob = torch.log(probs.gather(1, action))

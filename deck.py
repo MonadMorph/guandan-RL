@@ -27,7 +27,7 @@ class FrenchDeck:
         self.players = [PlayerDeck(hands[i], self.orderofRanks) for i in range(4)]
 
     def play(self, player_index, hand):
-        if player_index == self.history[-1][0] and hand.type == 7 and hand.aux_rank is not None: # Handle second "play" of 3+2
+        if self.history and player_index == self.history[-1][0] and hand.type == 7 and hand.aux_rank is not None: # Handle second "play" of 3+2
             self.history[-1] = (player_index, hand)
         else:
             self.history.append((player_index, hand))
@@ -122,13 +122,12 @@ class PlayerDeck:
     def can_play(self, other_hand=None):
         hand = self._legal()
         pairs = hand[1].copy()
-        if other_hand.type == 7 and other_hand.aux_rank is None: # aux_rank is None, which means this is for selecting the "2" of 3+2
-            ans = [[] for _ in range(len(hand))]
+        if other_hand is not None and other_hand.type == 7 and other_hand.aux_rank is None: # aux_rank is None, which means this is for selecting the "2" of 3+2
             try:
                 pairs.remove(other_hand.rank)
             except ValueError:
                 pass
-            ans[1] = pairs
+            ans = [Hand(2, card) for card in pairs]
             return ans
 
         if other_hand is None:
