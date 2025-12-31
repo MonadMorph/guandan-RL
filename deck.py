@@ -27,14 +27,19 @@ class FrenchDeck:
         self.players = [PlayerDeck(hands[i], self.orderofRanks) for i in range(4)]
 
     def play(self, player_index, hand):
-        if self.history and player_index == self.history[-1][0] and hand.type == 7 and hand.aux_rank is not None: # Handle second "play" of 3+2
-            self.history[-1] = (player_index, hand)
+        if self.history and player_index == self.history[-1][0]:            
+            if hand is None and self.history[-1][1]:
+                self.history[-1][1].rank = 3
+            elif hand.type == 7 and hand.aux_rank is not None: # Handle second "play" of 3+2
+                self.history[-1] = (player_index, hand)
+
         else:
             self.history.append((player_index, hand))
         if hand is not None:
             self.players[player_index].play(hand)
-            self.left[4] -= hand.size
-            self.left[player_index] -= hand.size
+            if hand.aux_rank is None:
+                self.left[4] -= hand.size
+                self.left[player_index] -= hand.size
 
     def state(self, player_index, prev_hand):
         #private hand, private legal actions, public history (last 16), public cards left (mine, next, ..., total), (public last player index, public last hand), player index

@@ -8,7 +8,7 @@ contrast_timestep = 200
 num_games = 100
 
 agent = Agent()
-agent.policy_value_net.load_state_dict(torch.load("Bests/policy_value_net_final.pt"))
+agent.policy_value_net.load_state_dict(torch.load("models/policy_value_net_150.pt"))
 
 def evaluate(agent, contrast_agent, num_games=100):
     wins = 0
@@ -28,21 +28,20 @@ def evaluate(agent, contrast_agent, num_games=100):
             if turn in won:
                 k += 1
                 continue
-            if prev_hand[1] == turn: prev_hand[0] = None  # Reset if it's the same player's turn, he can play anything
+            if prev_hand[1] == turn and (prev_hand[0] is None or prev_hand[0].type != 7 or prev_hand[0].aux_rank is not None):
+                prev_hand[0] = None  # Reset if it's the same player's turn, he can play anything
             if won and prev_hand[1] == won[-1] and turn == (won[-1] + 2) %4: prev_hand[0] = None
             state = test.state(turn, prev_hand)
-            if len(state[1]) == 0: 
-                k += 1
-                continue  # No possible actions
 
-            # This part is a temporary random player for testing
-            # Should be replaced by RL agent decision, from state
-            #testing
             if turn % 2 == 0:
                 this_hand, _, _, _ = agent.select_action(state)
             else:
                 this_hand, _, _, _ = contrast_agent.select_action(state)     
 
+            if prev_hand[1] == turn and prev_hand[0] is not None and this_hand: # didn't reset, must be 3 in 3+2
+                prev_hand[0].aux_rank = this_hand.rank # This is a bit tricky case, while playing the 2, the model should record selection a pair, while the deck should record 3+2 as a whole
+                # So we need fixing the action here, just add the new pair action to aux_rank
+                this_hand = prev_hand[0] # This new action has rank 7, instead of 2.
             test.play(turn, this_hand)
             prev_hand = [this_hand, turn]
 
@@ -65,6 +64,8 @@ def evaluate(agent, contrast_agent, num_games=100):
                         scores.append(score)
                     else: scores.append(-score)
                     break
+            if this_hand and this_hand.type == 7 and this_hand.aux_rank is None: # So for 3+2, we got the 3 but not the 2. Continue without increases turn.
+                continue
             k += 1
 
     print(f'Agent won {wins} games. Average score: {sum(scores)/num_games}')
@@ -78,6 +79,6 @@ def evaluate(agent, contrast_agent, num_games=100):
         evaluate(agent, contrast_agent, num_games)'''
 
 contrast_agent = Agent()
-contrast_agent.policy_value_net.load_state_dict(torch.load("Bests/policy_value_net_250+450.pt"))
+contrast_agent.policy_value_net.load_state_dict(torch.load("models/policy_value_net_50.pt"))
 print(f'Evaluation completed over {num_games} games, against 50.')
-evaluate(agent, contrast_agent, 1000)
+evaluate(agent, contrast_agent, 100)

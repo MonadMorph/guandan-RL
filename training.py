@@ -3,16 +3,20 @@ from guandan_transformer import Agent
 import torch, os
 from tqdm import trange
 import random
+import sys
 
 learning_rate = 1e-4
 epochs1 = 100
-epochs2 = 300
+epochs2 = 750
 checkpoint = 50
 old_agent_mix_prob = 0.3
 max_entropy_coef = 0.02
 
+starting_point = 0
 agent = Agent()
-#agent.policy_value_net.load_state_dict(torch.load("Bests/policy_value_net_250+450.pt"))
+if len(sys.argv) > 1:
+    starting_point = sys.argv[1]
+    agent.policy_value_net.load_state_dict(torch.load(f"models/policy_value_net_{starting_point}.pt"))
 print("Agent initialized")
 
 os.makedirs("models", exist_ok=True)
@@ -37,7 +41,9 @@ for i in pbar:
     pbar.set_postfix(loss=float(loss))
 
     if i % checkpoint == 0 and i > 0:
-        torch.save(agent.policy_value_net.state_dict(), f"models/policy_value_net_{i}.pt")
-        checkpoints.append(f"models/policy_value_net_{i}.pt")
+        torch.save(agent.policy_value_net.state_dict(), f"models/policy_value_net_{i+starting_point}.pt")
+        checkpoints.append(f"models/policy_value_net_{i+starting_point}.pt")
+        if len(checkpoints) > 10:
+            checkpoints.pop(0)
 
 torch.save(agent.policy_value_net.state_dict(), f"models/policy_value_net_final.pt")
